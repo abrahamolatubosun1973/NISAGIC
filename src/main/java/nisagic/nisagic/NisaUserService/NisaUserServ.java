@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -49,6 +50,20 @@ public class NisaUserServ {
     private String password;
 
 
+
+
+    public  Boolean saveNisa(NisaUser nisaUser) {
+        //String email = nisaUser.getEmail();
+    Optional<NisaUser> existingEmail = nisaUserRepo.findByEmail(nisaUser.getEmail());
+        if (existingEmail.isPresent()) {
+             return true;  //Email already exist
+        }else {
+            nisaUserRepo.save(nisaUser);
+            return false; // Registration Successful
+        }
+
+    }
+
     public String checkAndGenerateCode(String email) {
         Optional<NisaUser> userOptional = nisaUserRepo.findByEmail(email);
         String conCode = userOptional.get().getConfirmationCode();
@@ -66,8 +81,6 @@ public class NisaUserServ {
                 sendEmailWithQRCode(email, qrCodeFilePath, code);
 
                   nisaUserRepo.save(user);
-
-
             } catch (MessagingException e) {
                 e.printStackTrace();
                 return "Error sending email";
@@ -136,7 +149,7 @@ public class NisaUserServ {
                 helper.setTo(email.trim());
             }
            // helper.setTo(email);
-            helper.setSubject("Your NISA-GIS Conference Confirmation Code");
+            helper.setSubject("Your NISA-GIS Conference Confirmation Code Demo");
 
             // Check if QR code file exists
             File qrFile = new File(qrCodeFilePath);

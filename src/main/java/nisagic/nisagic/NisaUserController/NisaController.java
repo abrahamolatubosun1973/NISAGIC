@@ -2,6 +2,7 @@ package nisagic.nisagic.NisaUserController;
 
 
 import nisagic.nisagic.NisaUserService.NisaUserServ;
+import nisagic.nisagic.model.NisaUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,23 @@ import java.util.Map;
 public class NisaController {
     @Autowired
     private NisaUserServ nisaUserServ;
+
+
+    @PostMapping("/register")
+    public ResponseEntity<Map<String, String>> Registration(@RequestBody NisaUser nisaUser) {
+        //Boolean nisaUser1 = nisaUserServ.saveNisa(nisaUser);
+        Map<String, String> response = new HashMap<>();
+
+         if(!nisaUserServ.saveNisa(nisaUser)) {
+             response.put("message","200");
+             return ResponseEntity.ok(response);
+         }else{
+             response.put("message","301");
+             return ResponseEntity.badRequest().body(response);
+         }
+
+    }
+
 
     @PostMapping("/checkEmail")
     public ResponseEntity<Map<String, String>> CheckEmail(@RequestBody Map<String, String> emailMap) {
