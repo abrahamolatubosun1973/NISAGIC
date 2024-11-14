@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @CrossOrigin(origins = "*")
@@ -51,6 +52,12 @@ public class NisaController {
         return ResponseEntity.ok(response);
     }
 
+    //Endpoint to generate table numbers
+    @GetMapping("/generate-qr-code")
+    public String generateTableCodes(){
+        return nisaUserServ.generateAndSaveTableCode();
+    }
+
 //    @GetMapping("/verifiyQR")
 //    public ResponseEntity<Map<String,Object>> verifiyQRCode(@RequestParam("qrcode") String qrCode) {
 //       boolean found = nisaUserServ.checkCodeInDataBase(qrCode);
@@ -83,6 +90,13 @@ public class NisaController {
     public String testConnection() {
         return "200";
     }
+
+
+
+
+
+
+
 
 }
 

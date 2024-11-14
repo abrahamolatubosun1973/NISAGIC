@@ -31,6 +31,16 @@ import java.util.stream.Collectors;
 
 @Service
 public class NisaUserServ {
+
+    private static final int TOTAL_TABLES = 47;
+    private static final int SEATS_PER_TABLE = 8;
+
+    // Classification codes
+    private static final int RESEARCHER = 1;
+    private static final int POLICY_MAKER = 2;
+    private static final int IMPLEMENTING_PARTNER = 3;
+
+
     @Autowired
     private NisaUserRepo nisaUserRepo;
 
@@ -54,7 +64,7 @@ public class NisaUserServ {
 
     public  Boolean saveNisa(NisaUser nisaUser) {
         //String email = nisaUser.getEmail();
-    Optional<NisaUser> existingEmail = nisaUserRepo.findByEmail(nisaUser.getEmail());
+    Optional<NisaUser> existingEmail = nisaUserRepo.findByEmail(nisaUser.getFullName());
         if (existingEmail.isPresent()) {
              return true;  //Email already exist
         }else {
@@ -66,13 +76,13 @@ public class NisaUserServ {
 
     public String checkAndGenerateCode(String email) {
         Optional<NisaUser> userOptional = nisaUserRepo.findByEmail(email);
-        String conCode = userOptional.get().getConfirmationCode();
+        String conCode = userOptional.get().getClassification();
 
         if (userOptional.isPresent() && conCode == null ) {
 
             NisaUser user = userOptional.get();
-            String code = generateRandomCode();
-            user.setConfirmationCode(code);
+            String code = generateRandomCode(); // method to generate random numbers
+            user.setClassification((code));
 
                 // Generate QR Code
                 String qrCodeFilePath = generateQRCodeImage(code);
@@ -95,6 +105,48 @@ public class NisaUserServ {
 //        return UUID.randomUUID().toString().substring(0, 6);
 //    }
 
+//    public String generateQRCodeAndSendBulkEmail(){
+//        List<NisaUser> userList = nisaUserRepo.findAll();
+//        int code = 10;
+//        boolean incrementToNextMultipleOfTen = false; // Flag to control incrementing by multiples of 10
+//
+//
+//        for(NisaUser user : userList){
+//                if(!user.getEmail().isEmpty() && user.getConfirmationCode() == null){
+//                String lastName = user.getLastName();
+//                String classification = user.getClassification();
+//
+//                // Extract the first three letters of the last name
+//                String lastNamePart = lastName.length() >= 3 ? lastName.substring(0, 3) : lastName;
+//
+//                // Construct the confirmation code
+//                String mergedCode = lastNamePart + code + "-" + classification;
+//                user.setConfirmationCode(mergedCode);
+//                nisaUserRepo.save(user);
+//
+//                    // Increment logic for code
+//                    code++;
+//
+//                    // Skip numbers ending in 9 (19, 29, 39, etc.)
+//                    if (code % 10 == 9) {
+//                        code += 1; // Jump directly to the next multiple of 10
+//                    }
+//
+//                //-- Generate QR code
+//                String qrCodeFilePath  = generateQRCodeImage(mergedCode); // method that generate QR-code
+////                    try {
+////                        //Use the QR-code to send mails to the participant
+////                        sendEmailWithQRCode(user.getEmail().trim(), qrCodeFilePath, mergedCode);
+////                    } catch (MessagingException e) {
+////                        throw new RuntimeException(e);
+////                    }
+//
+//                }
+//        }
+//        return null;
+//    }
+
+//-------- generateRandomCode is now deprecated and replaced with generateQRCodeAndSendEmail
     private String generateRandomCode() {
         // Generate first three random alphabetic characters
         Random random = new Random();
@@ -120,6 +172,7 @@ public class NisaUserServ {
 
         return code.toString();
     }
+
 
     private String generateQRCodeImage(String code) {
         try {
@@ -194,5 +247,94 @@ public class NisaUserServ {
     }
 
     //-- Persist excel file into the database
+
+    public String generateAndSaveTableCode() {
+        List<NisaUser> users = nisaUserRepo.findAll();
+        List<NisaUser> allTableCodes = new ArrayList<>();
+
+        int tableNumber = 1;
+
+        // Group users by classification
+        List<NisaUser> researchers = users.stream()
+                .filter(u -> "1".equals(u.getClassification()))
+                .collect(Collectors.toList());
+
+        List<NisaUser> policyMakers = users.stream()
+                .filter(u -> "2".equals(u.getClassification()))
+                .collect(Collectors.toList());
+
+        List<NisaUser> implementingPartners = users.stream()
+                .filter(u -> "3".equals(u.getClassification()))
+                .collect(Collectors.toList());
+
+        // Shuffle to create random seating
+        Collections.shuffle(researchers);
+        Collections.shuffle(policyMakers);
+        Collections.shuffle(implementingPartners);
+
+        while (tableNumber <= 47) {
+            List<NisaUser> table = new ArrayList<>();
+
+            // Format table number with leading zero for single digits (e.g., "01", "02")
+            String formattedTableNumber = String.format("%02d", tableNumber);
+
+            // Add up to 2 Researchers to the table
+            List<NisaUser> assignedResearchers = researchers.stream().limit(2).collect(Collectors.toList());
+            table.addAll(assignedResearchers);
+            researchers = researchers.subList(Math.min(2, researchers.size()), researchers.size());
+
+            // Add up to 1 Policy Maker to the table
+            List<NisaUser> assignedPolicyMakers = policyMakers.stream().limit(1).collect(Collectors.toList());
+            table.addAll(assignedPolicyMakers);
+            policyMakers = policyMakers.subList(Math.min(1, policyMakers.size()), policyMakers.size());
+
+            // Add up to 5 Implementing Partners to the table
+            List<NisaUser> assignedImplementingPartners = implementingPartners.stream().limit(5).collect(Collectors.toList());
+            table.addAll(assignedImplementingPartners);
+            implementingPartners = implementingPartners.subList(Math.min(5, implementingPartners.size()), implementingPartners.size());
+
+            // Set code and table assignment for each user
+            String codeTable = "Table" + formattedTableNumber;
+            for (NisaUser user : table) {
+                String classificationText = getClassificationText(user.getClassification());
+                String generatedCode = user.getFullName() + "-" + codeTable + "-" + classificationText;
+                user.setCodeTable(generatedCode);
+                nisaUserRepo.save(user);  // Persist each user with the generated code
+                allTableCodes.add(user);
+            }
+
+            tableNumber++;
+        }
+
+        exportCodesToExcel(allTableCodes); // Export to Excel
+        return "Table codes generated and saved successfully!";
+    }
+
+    // Helper method to convert classification to descriptive text
+    private String getClassificationText(String classification) {
+        switch (classification) {
+            case "1": return "Researcher";
+            case "2": return "Policy Maker";
+            case "3": return "Implementing Partner";
+            default: return "Unknown";
+        }
+    }
+
+    private void exportCodesToExcel(List<NisaUser> tableCodes) {
+        // Excel export logic (implementation needed here)
+    }
+
+
+    private String generateCode(String Fullname,int code, int classification){
+        return Fullname+code+"-"+classification;
+    }
+
+//    private void exportCodesToExcel(List<TableCode> tableCodes) {
+//        // Excel export logic (implementation needed here)
+//    }
+
+
+
+
 
 }

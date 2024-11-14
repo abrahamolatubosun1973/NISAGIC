@@ -2,6 +2,7 @@ package nisagic.nisagic.NisaUserService;
 
 import nisagic.nisagic.model.NisaUser;
 import nisagic.nisagic.repository.NisaUserRepo;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -39,10 +40,20 @@ public class ExcelUploadService {
                 if (row.getRowNum() == 0) continue; // Skip header row
 
                 NisaUser user = new NisaUser();
-                user.setFirstName(row.getCell(0).getStringCellValue());
-                user.setLastName(row.getCell(1).getStringCellValue());
-                user.setEmail(row.getCell(2).getStringCellValue());
-                user.setPhonenumber(row.getCell(3).getStringCellValue());
+//               user.setFullName(row.getCell(0).getStringCellValue());
+//               user.setAddress(row.getCell(1).getStringCellValue());
+//               user.setClassification(row.getCell(2).getStringCellValue());
+                user.setFullName(row.getCell(0).getStringCellValue());
+                user.setAddress(row.getCell(1).getStringCellValue());
+
+// Convert numeric value to String for the classification field
+                if (row.getCell(2).getCellType() == CellType.NUMERIC) {
+                    // If the cell is numeric, convert the number to a String
+                    user.setClassification(String.valueOf((int) row.getCell(2).getNumericCellValue()));
+                } else {
+                    // If the cell is already a String, use it directly
+                    user.setClassification(row.getCell(2).getStringCellValue());
+                }
                 users.add(user);
             }
 

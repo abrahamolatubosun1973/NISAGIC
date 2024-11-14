@@ -16,11 +16,12 @@ public class NisaUser {
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         private Long id;
-        private String firstName;
-        private String lastName;
-        private String email;
-        private String phonenumber;
+        private String fullName;
+        private String address;
+        private String classification;
+        private String CodeTable;
         private String confirmationCode;
+        private String email;
 
 
 }
